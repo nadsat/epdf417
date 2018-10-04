@@ -1,0 +1,7 @@
+/doc/
+/lib/*/ebin/
+/lib/*/_build/
+/lib/*/tmp/
+/.eunit
+.swp
+erl_crash.dump
