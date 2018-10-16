@@ -3,7 +3,7 @@
 #include <string.h>
 
 const unsigned int MAX_MSG_SIZE = 1100;
-const unsigned int ANS_LEN = 7;
+const unsigned int ANS_LEN = 4;
 const unsigned int MAX_ATOM = 512;
 const unsigned int MAX_FIELD = 512;
 const char* GEN_ERROR = "default_error";
@@ -39,6 +39,7 @@ raw_code(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	ERL_NIF_TERM t;
 	int isb = 0;
 	int cols = 0;
+	int rows = 0;
 	pdf417param p;
 
 	if (enif_inspect_binary(env, argv[0], &bin)) {
@@ -87,6 +88,10 @@ raw_code(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	cols = p.bitColumns / 8 + 1;
 	t = enif_make_int (env, cols);
 	ans[2] =  enif_make_tuple2 (env,mk_atom(env,"len_columns"), t);
+
+	rows = p.codeRows;
+	t = enif_make_int (env, rows);
+	ans[3] =  enif_make_tuple2 (env,mk_atom(env,"len_rows"), t);
 
 	pdf417free(&p);
 	free(msg);
