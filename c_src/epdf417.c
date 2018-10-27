@@ -3,12 +3,12 @@
 #include <string.h>
 
 const unsigned int MAX_MSG_SIZE = 1100;
-const unsigned int ANS_LEN = 4;
+const unsigned int ANS_LEN = 5;
 const unsigned int MAX_ATOM = 512;
 const unsigned int MAX_FIELD = 512;
 const char* GEN_ERROR = "default_error";
 
-	ERL_NIF_TERM
+static ERL_NIF_TERM
 mk_atom(ErlNifEnv* env, const char* atom)
 {
 	ERL_NIF_TERM ret;
@@ -21,7 +21,7 @@ mk_atom(ErlNifEnv* env, const char* atom)
 	return ret;
 }
 
-	ERL_NIF_TERM
+static ERL_NIF_TERM
 mk_error(ErlNifEnv* env, const char* mesg)
 {
 	return enif_make_tuple2(env, mk_atom(env, "error"), mk_atom(env, mesg));
@@ -40,8 +40,8 @@ raw_code(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	int isb = 0;
 	int cols = 0;
 	int rows = 0;
+	int bit_cols = 0;
 	pdf417param p;
-
 	if (enif_inspect_binary(env, argv[0], &bin)) {
 		length = bin.size;
 		isb    = 1;
@@ -52,6 +52,8 @@ raw_code(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 			goto DERR;
 		}
 	}
+  msg = (char *)malloc(length + 1);
+
 	if (length > MAX_MSG_SIZE ){
 		err_str = "text_too_long";
 		goto DERR;
@@ -67,8 +69,9 @@ raw_code(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		}
 	}
 	pdf417init(&p);
-	p.text = msg;
-	p.options = PDF417_INVERT_BITMAP;
+  p.text = msg;
+  p.options = PDF417_INVERT_BITMAP;
+
 	paintCode(&p);
 	if (p.error){
 		pdf417free(&p);
@@ -80,7 +83,7 @@ raw_code(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
 	ans = (ERL_NIF_TERM*)enif_alloc(ANS_LEN*sizeof(ERL_NIF_TERM));
 
-	t = enif_make_binary (env,raw_bin);
+	t = enif_make_binary (env,&raw_bin);
 	ans[0] =  enif_make_tuple2 (env,mk_atom(env,"raw_data"), t);
 	t = enif_make_int (env, p.lenBits);
 	ans[1] =  enif_make_tuple2 (env,mk_atom(env,"len_data"), t);
@@ -92,6 +95,13 @@ raw_code(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	rows = p.codeRows;
 	t = enif_make_int (env, rows);
 	ans[3] =  enif_make_tuple2 (env,mk_atom(env,"len_rows"), t);
+  res = enif_make_list_from_array(env, ans, ANS_LEN);
+  
+  bit_cols = p.bitColumns;
+	t = enif_make_int (env, bit_cols);
+	ans[4] =  enif_make_tuple2 (env,mk_atom(env,"bit_columns"), t);
+  res = enif_make_list_from_array(env, ans, ANS_LEN);
+
 
 	pdf417free(&p);
 	free(msg);
