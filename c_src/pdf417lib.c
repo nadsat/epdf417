@@ -515,7 +515,8 @@ static void breakString(pPdf417class p, pArrayList list) {
     int startN = 0;
     int nd = 0;
     char c = 0;
-    int k, ptrS, lastTxt, j, txt;
+    //int k, ptrS, lastTxt, j, txt;
+    int k, lastTxt, j, txt;
     pListElement v;
     pListElement vp;
     pListElement vn;
@@ -531,7 +532,7 @@ static void breakString(pPdf417class p, pArrayList list) {
         if (nd >= 13) {
             if (lastP != startN) {
                 c = text[lastP];
-                ptrS = lastP;
+                //ptrS = lastP;
                 lastTxt = (c >= ' ' && c < 127) || c == '\r' || c == '\n' || c == '\t';
                 for (j = lastP; j < startN; ++j) {
                     c = text[j];
@@ -553,7 +554,7 @@ static void breakString(pPdf417class p, pArrayList list) {
         startN = textLength;
     if (lastP != startN) {
         c = text[lastP];
-        ptrS = lastP;
+        //ptrS = lastP;
         lastTxt = (c >= ' ' && c < 127) || c == '\r' || c == '\n' || c == '\t';
         for (j = lastP; j < startN; ++j) {
             c = text[j];
@@ -689,8 +690,8 @@ static void dumpList(pPdf417class p, pArrayList list) {
     if (list->size == 0)
         return;
     for (k = 0; k < list->size; ++k) {
-        pListElement v = listGet(list, k);
-        printf("%c%.*s\n", v->type, v->end - v->start, p->param->text + v->start);
+        //pListElement v = listGet(list, k);
+        //printf("%c%.*s\n", v->type, v->end - v->start, p->param->text + v->start);
     }
 }
 
