@@ -1,6 +1,8 @@
 -module(epdf417).
 -on_load(init/0).
 
+-include_lib("png/include/png.hrl").
+
 %% API exports
 -export([raw_code/1]).
 -export([png/1]).
@@ -19,21 +21,20 @@ raw_code (_)->
 
 png (Text)->
   {ok, Payload} = raw_code(Text),
-  Raw = proplists:get_value("raw_data",Payload),
-  DataLen = proplists:get_value("len_data",Payload),
-  Columns = proplists:get_value("len_columns",Payload),
-  Width = Columns*8,
-  Heigth = proplists:get_value("len_rows",Payload),
+  Raw = proplists:get_value(raw_data,Payload),
+  BitColumns = proplists:get_value(bit_columns,Payload),
+  Width = BitColumns,
+  Height = 3*proplists:get_value(len_rows,Payload),
   ColorMode = indexed,
   Bits = 8,
-  Palette = {ColorMode, Bits, [?BLACK,?WHITE]},
+  Palette = {rgb, Bits, [?BLACK,?WHITE]},
   PngConfig = #png_config{size = {Width, Height},
-                          mode = {indexed, 8}},
-  Rows = get_png_rows(Columns, Raw),
+                          mode = {ColorMode, 8}},
+  Rows = get_png_rows(BitColumns, Raw),
   Data = {rows, Rows},
   IoData = [png:header(),
             png:chunk('IHDR', PngConfig),
-            png:chunk('PLTE', Pallette),
+            png:chunk('PLTE', Palette),
             png:chunk('IDAT', Data),
             png:chunk('IEND')],
   {ok, IoData}.
@@ -51,6 +52,7 @@ init() ->
                    filename:join([priv, ?LIBNAME])
                end;
              Dir ->
+               timer:sleep(2000),
                filename:join(Dir, ?LIBNAME)
            end,
   erlang:load_nif(SoName, 0).
@@ -62,11 +64,14 @@ get_png_rows(Cols,Data) ->
   get_png_rows(Cols,Data,[]).
 
 
-get_png_rows(Cols, <<>>, L) ->
+get_png_rows(Cols, Data, L) when bit_size(Data) < Cols ->
   lists:reverse(L);
-get_png_rows(Cols, Data, Acc) ->
+get_png_rows(Cols, Data, Acc) when bit_size(Data) >= Cols->
   {Row, Rest} = get_row(Cols, Data),
-  get_png_rows(Cols, Rest, [Row|Acc]).
+  One = [Row|Acc],
+  Two = [Row|One],
+  Tree = [Row|Two],
+  get_png_rows(Cols, Rest, Tree).
 
 get_row(Cols, Data) ->
   get_row(Cols, Data,[] ).
@@ -74,10 +79,17 @@ get_row(Cols, Data) ->
 get_row(0, Rest, Row) ->
   R = lists:reverse(Row),
   {R, Rest};
-get_row(Col, Data, P) ->
+get_row(Col, Data, Acc) when Col < 8 ->
+  Left = 8-Col,
+  << B:Col, Rem/bitstring >> = Data,
+  << _:Left, Rest/bitstring >> = Rem,
+  P = get_pixels(<< B:Col >>),
+  get_row(0 , Rest, [P|Acc]);
+get_row(Col, Data, Acc) when Col >= 8 ->
   << B:8, Rest/binary >> = Data,
-  P = get_pixels(B)
-  get_row(Col-1, Rest, Acc).
+  %<< B:8, Rest/bitstring >> = Data,
+  P = get_pixels(<<B>>),
+  get_row(Col-8, Rest, [P|Acc]).
 
 get_pixels(B) ->
   get_pixels(B, []).
